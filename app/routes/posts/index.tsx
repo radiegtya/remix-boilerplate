@@ -1,9 +1,8 @@
 import { ActionArgs, redirect } from "@remix-run/node"
-import { useLoaderData } from "@remix-run/react"
-import PostsForm from "./PostsForm"
+import { useLoaderData, useNavigation } from "@remix-run/react"
 import { createPost, getPosts } from "~/modules/posts/posts.service"
-import { createPostValidator } from "~/modules/posts/posts.schema"
-import { validationError } from "remix-validated-form"
+import { createPostSchema } from "~/modules/posts/posts.schema"
+import PostsForm from "./PostsForm"
 
 
 export async function loader() {
@@ -11,28 +10,31 @@ export async function loader() {
 }
 
 export async function action({request}: ActionArgs) {
-    const res = await createPostValidator.validate(await request.formData())
-    if (res.error) {
-        return validationError(res.error);
-    }
+    const formData = await request.formData()
+    const data = createPostSchema.parse(Object.fromEntries(formData))
 
-    await createPost(res.data)
+    await createPost(data)
 
     return redirect('/posts')
 }
 
 export default function Posts() {
     const posts = useLoaderData<typeof loader>()
+    const { state } = useNavigation()
 
     return (
         <>
-            <ul>
-                {posts.map(post=> (
-                    <li>
-                        {post.title}
-                    </li>
-                ))}
-            </ul>
+            {state === "loading"?(
+                <h1>Loading...</h1>
+            ):(
+                <ul>
+                    {posts.map(post=> (
+                        <li key={post.id}>
+                            {post.title}
+                        </li>
+                    ))}
+                </ul>
+            )}            
 
             <h3>Create Post</h3>
 
